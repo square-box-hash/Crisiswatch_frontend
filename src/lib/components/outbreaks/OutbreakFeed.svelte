@@ -6,7 +6,11 @@
   }
 
   function severityClass(level = '') {
-    const map = { critical: 'alert', high: 'advisory', moderate: 'advisory', low: 'monitoring' }
+    const map = {
+      critical: 'alert', high: 'advisory', moderate: 'advisory', low: 'monitoring',
+      // pass-through for APIs that already send the final labels
+      alert: 'alert', advisory: 'advisory', monitoring: 'monitoring',
+    }
     return map[level.toLowerCase()] ?? 'monitoring'
   }
 
@@ -83,7 +87,7 @@
             <span class="card-arrow">›</span>
           </div>
 
-          <!-- Disease name -->
+          <!-- Disease name — big editorial serif -->
           <div class="disease-name">{o.disease ?? 'Unknown'}</div>
 
           <!-- Location — just country, no duplicate -->
@@ -163,30 +167,36 @@
     background: var(--bg2);
     border: 1px solid var(--b0);
     border-radius: 10px;
-    padding: 13px;
+    padding: 14px 16px;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
+    flex-shrink: 0;       /* prevents card from collapsing in flex list */
+    min-height: 0;
   }
   .outbreak-card:hover {
     border-color: var(--b1);
     background: var(--bg3);
   }
-  .outbreak-card.active          { border-color: var(--red);  background: var(--bg3); }
-  .outbreak-card.active-advisory { border-color: #f59e0b;     background: var(--bg3); }
-  .outbreak-card.active-monitoring { border-color: var(--b1); background: var(--bg3); }
+  .outbreak-card.active            { border-color: var(--red);  background: var(--bg3); }
+  .outbreak-card.active-advisory   { border-color: #f59e0b;     background: var(--bg3); }
+  .outbreak-card.active-monitoring { border-color: var(--b1);   background: var(--bg3); }
 
   /* Card internals */
   .card-top {
     display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 7px;
+    margin-bottom: 8px;
   }
   .card-arrow { color: var(--t3); font-size: 15px; }
 
+  /* Disease name — big editorial serif, matches detail panel heading */
   .disease-name {
-    font-size: 14px;
-    font-weight: 600;
+    font-family: var(--font-serif), 'Playfair Display', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
     color: var(--t1);
-    margin-bottom: 4px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin-bottom: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -221,14 +231,15 @@
     width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   }
 
-  .status-badge.alert      { background: rgba(239,68,68,0.12);  color: #ef4444; }
-  .status-badge.alert      .status-dot { background: #ef4444; }
+  .status-badge.alert      { background: rgba(208,78,78,0.12);  color: var(--red); }
+  .status-badge.alert      .status-dot { background: var(--red); }
 
-  .status-badge.advisory   { background: rgba(245,158,11,0.12); color: #f59e0b; }
-  .status-badge.advisory   .status-dot { background: #f59e0b; }
+  .status-badge.advisory   { background: rgba(192,122,16,0.12); color: var(--amber); }
+  .status-badge.advisory   .status-dot { background: var(--amber); }
 
-  .status-badge.monitoring { background: rgba(99,102,241,0.12); color: #818cf8; }
-  .status-badge.monitoring .status-dot { background: #818cf8; }
+  /* monitoring — switched from indigo to green, matches map legend */
+  .status-badge.monitoring { background: rgba(58,150,96,0.12);  color: var(--green); }
+  .status-badge.monitoring .status-dot { background: var(--green); }
 
   /* Skeleton */
   .skeleton-card {
