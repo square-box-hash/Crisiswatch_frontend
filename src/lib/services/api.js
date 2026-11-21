@@ -2,7 +2,7 @@
 //  CrisisWatch — API Service
 // ============================================================
 
-import { API_BASE_URL } from '../constants'
+import { API_BASE_URL } from '../constants.js'
 
 const BASE_URL = API_BASE_URL
 
@@ -157,7 +157,7 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     const msg = await res.text().catch(() => res.statusText)
-    throw new Error(`API ${res.status}: ${msg}`)
+    throw new Error(`API ${res.status}: ${msg.slice(0, 160)}`)
   }
 
   return res.json()
@@ -165,10 +165,18 @@ async function request(path, options = {}) {
 
 // ── Outbreaks ─────────────────────────────────────────────
 
-export async function fetchOutbreaks({ region = null, days = 7 } = {}) {
-  const params = new URLSearchParams({ days })
+export async function fetchOutbreaks({
+  region = null,
+  days = 7,
+  q = null,
+  severity = null,
+  limit = 100,
+} = {}) {
+  const params = new URLSearchParams({ days: String(days), limit: String(limit) })
 
-  if (region) params.set('region', region)
+  if (region && region !== 'all') params.set('region', region)
+  if (q) params.set('q', q)
+  if (severity && severity !== 'all') params.set('severity', severity)
 
   return request(`/outbreaks?${params}`)
 }
@@ -181,74 +189,74 @@ export async function fetchSummary(id) {
   return request(`/outbreaks/${id}/summary`)
 }
 
-// ⚠️ Backend does NOT currently support these endpoints
-// So we safely degrade them instead of breaking UI
-
-export async function fetchSpreadProjection(id) {
-  const data = await request(`/outbreaks/${id}`)
-  return data.spread_prediction ?? {}
+export async function fetchStats() {
+  return request('/stats')
 }
 
-export async function fetchDoctorMessages(id) {
-  const data = await request(`/outbreaks/${id}`)
-  return data.worker_messages ?? []
-}
-
-// ── Health check ──────────────────────────────────────────
-
-export async function healthCheck() {
-  return request('/')
+export async function fetchHealth() {
+  return request('/health')
 }
 
 // ── Normaliser ────────────────────────────────────────────
+// The API already speaks low|moderate|high|critical, so this does NOT translate
+// severity — it only fills gaps and derives the trend from snapshots.
 
 export function normaliseOutbreak(raw) {
+  const snapshots = Array.isArray(raw.snapshots) ? raw.snapshots : []
+  const series = snapshots.map(s => Number(s.cases) || 0)
+
+  const first = series.length ? series[0] : 0
+  const last = series.length ? series[series.length - 1] : Number(raw.cases) || 0
+
+  let trendPct = 0
+  if (first > 0) trendPct = Math.round(((last - first) / first) * 100)
+
   return {
     id: raw._id ?? raw.incident_id ?? raw.id ?? null,
+    incidentKey: raw.incident_key ?? null,
 
     disease: raw.disease ?? 'Unknown',
 
     location: raw.country ?? raw.region ?? '',
-
     region: raw.region ?? '',
     country: raw.country ?? '',
 
-    severity: raw.severity ?? 'low',
-    classification: raw.classification ?? 'pending',
+    severity: String(raw.severity ?? 'low').toLowerCase(),
+    lifecycle: raw.lifecycle_stage ?? '',
+    claimType: raw.claim_type ?? '',
 
-    cases: raw.cluster_signal?.cases ?? raw.cases ?? 0,
-    deaths: raw.cluster_signal?.deaths ?? raw.deaths ?? 0,
+    cases: Number(raw.cases ?? raw.estimated_cases ?? 0),
+    deaths: Number(raw.deaths ?? raw.estimated_deaths ?? 0),
+    peakCases: Number(raw.peak_cases ?? raw.cases ?? 0),
 
-    trendPct: 0,
-    trendDir: 'up',
+    trendPct: Math.abs(trendPct),
+    trendDir: trendPct >= 0 ? 'up' : 'down',
+    trendSeries: series,
 
     lat: raw.lat ?? COUNTRY_COORDS[raw.country]?.[0] ?? COUNTRY_COORDS[raw.region]?.[0] ?? null,
     lng: raw.lng ?? COUNTRY_COORDS[raw.country]?.[1] ?? COUNTRY_COORDS[raw.region]?.[1] ?? null,
 
-    summary: raw.ai_summary ?? raw.ai_assessment ?? '',
+    summary: raw.ai_summary ?? '',
     ai_summary: raw.ai_summary ?? '',
+    reasoning: raw.reasoning ?? '',
 
-    confidence: raw.confidence_score ?? raw.confidence ?? 0.7,
+    confidence: Number(raw.confidence_score ?? 0),
+    verificationStatus: raw.verification_status ?? 'unverified',
 
-    updatedAt: raw.updated_at ?? new Date().toISOString(),
+    sourceUrls: raw.source_urls ?? [],
+    sourceNames: raw.source_names ?? [],
+    neighboring_mentions: raw.neighboring_mentions ?? [],
 
-    spread:
-      typeof raw.spread_prediction === 'object'
-        ? raw.spread_prediction
-        : {},
+    firstSeen: raw.first_seen ?? null,
+    lastSeen: raw.last_seen ?? raw.updated_at ?? null,
+    updatedAt: raw.last_seen ?? raw.updated_at ?? null,
 
-    safetyAdvice: raw.safety_advice ?? {},
+    snapshots,
 
-    workerMessages: raw.worker_messages ?? raw.workerMessages ?? [],
+    workerMessages: raw.worker_messages ?? [],
+    workerConsensus: raw.worker_consensus ?? null,
 
-    version: raw.version ?? 1,
-
-    precautions: raw.safety_advice
-      ? [
-          raw.safety_advice.public,
-          raw.safety_advice.practitioner,
-          raw.safety_advice.ngo
-        ].filter(Boolean)
-      : []
+    spread: typeof raw.spread_prediction === 'object' ? raw.spread_prediction : {},
+    precautions: [],
   }
 }

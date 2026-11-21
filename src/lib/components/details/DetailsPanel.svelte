@@ -1,7 +1,7 @@
 <script>
   import { selectedOutbreak } from '../../stores/index.js'
-  import { fetchSummary, fetchDoctorMessages } from '../../services/api.js'
   import { fetchOutbreak } from '../../services/api.js'
+  import { severityBand } from '../../styles/theme.js'
 
   let activeTab = 'ai'
   let summaryData = null
@@ -11,12 +11,6 @@
   
   $: if ($selectedOutbreak && $selectedOutbreak.id !== lastLoadedId) {
     lastLoadedId = $selectedOutbreak.id
-    loadDetail($selectedOutbreak)
-    activeTab = 'ai'
-  }
-
-  // Reload data when selected outbreak changes
-  $: if ($selectedOutbreak) {
     loadDetail($selectedOutbreak)
     activeTab = 'ai'
   }
@@ -58,9 +52,9 @@
   function close() { selectedOutbreak.set(null) }
 
   function pillClass(severity = '') {
-    const s = severity.toLowerCase()
-    if (s === 'alert')      return 'alert-pill'
-    if (s === 'advisory')   return 'alert-pill advisory-pill'
+    const band = severityBand(severity)
+    if (band === 'alert')    return 'alert-pill'
+    if (band === 'advisory') return 'alert-pill advisory-pill'
     return 'alert-pill monitoring-pill'
   }
 
@@ -73,20 +67,22 @@
     } catch { return '' }
   }
 
-  // Sparkline points from cases array or generate fake trend
+  // Sparkline from the real case snapshots. Empty when there is no history —
+  // better to show nothing than an invented trend.
   function sparkPoints(o) {
-    if (o.trendData?.length) {
-      const max = Math.max(...o.trendData)
-      const min = Math.min(...o.trendData)
-      const range = max - min || 1
-      return o.trendData.map((v, i) => {
-        const x = 4 + (i / (o.trendData.length - 1)) * 102
-        const y = 40 - ((v - min) / range) * 34
-        return `${x},${y}`
-      }).join(' ')
-    }
-    // Fallback: fake upward trend
-    return '4,38 16,33 26,36 36,28 46,30 56,22 66,24 76,16 86,13 104,6'
+    const series = o.trendSeries ?? []
+
+    if (series.length < 2) return ''
+
+    const max = Math.max(...series)
+    const min = Math.min(...series)
+    const range = max - min || 1
+
+    return series.map((v, i) => {
+      const x = 4 + (i / (series.length - 1)) * 102
+      const y = 40 - ((v - min) / range) * 34
+      return `${x},${y}`
+    }).join(' ')
   }
 </script>
 
@@ -120,14 +116,6 @@
         {#if loadingSummary}
           <div class="skeleton" style="height:60px;border-radius:8px;margin-bottom:12px"></div>
         {:else}
-        {
-          console.log('SUMMARY DEBUG:',{
-            summaryData,
-            o_ai_summary: o.ai_summary,
-            o_summary: o.summary,
-            loadingSummary
-          })
-        }
           <div class="ai-box">
             {summaryData?.summary || o.ai_summary || o.summary || 'No Summary available yet.'}
             <div class="conf-row">
@@ -146,19 +134,33 @@
             <div class="stat-lbl">Confirmed Cases</div>
             <div class="stat-val">{o.cases?.toLocaleString()}</div>
             <div class="stat-chg">
-              {o.trendDir === 'up' ? '↑' : '↓'} {Math.abs(o.trendPct)}% from last 7 days
+              {#if o.trendSeries?.length > 1}
+                {o.trendDir === 'up' ? '↑' : '↓'} {Math.abs(o.trendPct)}% since first report
+              {:else}
+                No change recorded yet
+              {/if}
             </div>
+            {#if o.deaths > 0}
+              <div class="stat-chg" style="opacity:.7">
+                {o.deaths.toLocaleString()} deaths reported
+              </div>
+            {/if}
           </div>
           <div class="spark-card">
             <div class="stat-lbl">Trend</div>
-            <svg viewBox="0 0 110 46" style="width:100%;height:40px;margin-top:4px">
-              <polyline
-                points={sparkPoints(o)}
-                fill="none" stroke="var(--red)"
-                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-              />
-              <circle cx="104" cy="6" r="2.5" fill="var(--red)"/>
-            </svg>
+            {#if sparkPoints(o)}
+              <svg viewBox="0 0 110 46" style="width:100%;height:40px;margin-top:4px">
+                <polyline
+                  points={sparkPoints(o)}
+                  fill="none" stroke="var(--red)"
+                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                />
+              </svg>
+            {:else}
+              <div class="stat-chg" style="margin-top:14px;opacity:.55">
+                Not enough history yet
+              </div>
+            {/if}
           </div>
         </div>
       </div>

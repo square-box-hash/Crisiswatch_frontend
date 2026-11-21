@@ -45,7 +45,7 @@
       </svg>
 
       <!-- Alert badge dot for alerts tab -->
-      {#if tab.id === 'alerts' && $severityCounts.alert > 0}
+      {#if tab.id === 'alerts' && ($severityCounts.critical + $severityCounts.high) > 0}
         <span class="badge-dot"></span>
       {/if}
     </button>

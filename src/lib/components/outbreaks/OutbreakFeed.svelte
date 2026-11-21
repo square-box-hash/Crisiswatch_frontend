@@ -1,17 +1,13 @@
 <script>
   import { filteredOutbreaks, selectedOutbreak, feedStatus } from '../../stores/index.js'
+  import { severityBand } from '../../styles/theme.js'
 
   function selectOutbreak(o) {
     selectedOutbreak.set(o)
   }
 
   function severityClass(level = '') {
-    const map = {
-      critical: 'alert', high: 'advisory', moderate: 'advisory', low: 'monitoring',
-      // pass-through for APIs that already send the final labels
-      alert: 'alert', advisory: 'advisory', monitoring: 'monitoring',
-    }
-    return map[level.toLowerCase()] ?? 'monitoring'
+    return severityBand(level)
   }
 
   function formatTrend(pct, dir) {
@@ -96,6 +92,9 @@
           <!-- Stats -->
           <div class="card-stats">
             <span class="card-count">{formatCases(o.cases)} cases</span>
+            {#if o.deaths > 0}
+              <span class="card-count" style="opacity:.55">{formatCases(o.deaths)} deaths</span>
+            {/if}
             <span class="trend {o.trendDir}">
               {formatTrend(o.trendPct, o.trendDir)}
             </span>

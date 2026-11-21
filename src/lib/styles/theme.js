@@ -28,15 +28,47 @@ export const colors = {
   b2: 'rgba(255,255,255,0.14)',
 }
 
+// The backend speaks exactly this vocabulary — low | moderate | high | critical.
+// `band` is the only thing that maps to a CSS class, and it is defined here once.
 export const severity = {
-  alert:      { color: colors.red,   label: 'Alert',      dim: 'rgba(208,78,78,0.12)'    },
-  advisory:   { color: colors.amber, label: 'Advisory',   dim: 'rgba(192,122,16,0.12)'   },
-  monitoring: { color: colors.green, label: 'Monitoring', dim: 'rgba(58,150,96,0.12)'    },
+  critical: {
+    color: colors.red,
+    label: 'Critical',
+    band:  'alert',
+    dim:   'rgba(208,78,78,0.12)',
+  },
+  high: {
+    color: colors.amber,
+    label: 'High',
+    band:  'advisory',
+    dim:   'rgba(192,122,16,0.12)',
+  },
+  moderate: {
+    color: colors.teal,
+    label: 'Moderate',
+    band:  'monitoring',
+    dim:   'rgba(41,184,154,0.12)',
+  },
+  low: {
+    color: colors.green,
+    label: 'Low',
+    band:  'monitoring',
+    dim:   'rgba(58,150,96,0.12)',
+  },
 }
 
-// Returns severity config by string key (case-insensitive)
+// Ordered worst-first, for legends and sorting.
+export const SEVERITY_ORDER = ['critical', 'high', 'moderate', 'low']
+
+// Returns severity config by string key (case-insensitive).
 export function getSeverity(level = '') {
-  return severity[level.toLowerCase()] ?? severity.monitoring
+  const key = String(level).toLowerCase()
+  return severity[key] ?? severity.low
+}
+
+// CSS class name: 'alert' | 'advisory' | 'monitoring'
+export function severityBand(level = '') {
+  return getSeverity(level).band
 }
 
 // Leaflet circle marker options per severity

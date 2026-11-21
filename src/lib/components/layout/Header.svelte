@@ -1,5 +1,5 @@
 <script>
-  import { searchQuery, filters } from '../../stores/index.js'
+  import { searchQuery, filters, countries } from '../../stores/index.js'
 
   const timeRanges = [
     { value: '24h', label: 'Last 24h' },
@@ -17,6 +17,13 @@
     filters.update(f => ({ ...f, timeRange: val }))
     showTimeMenu = false
   }
+
+  function setRegion(val) {
+    filters.update(f => ({ ...f, region: val }))
+    showRegionMenu = false
+  }
+
+  $: currentRegion = $filters.region === 'all' ? 'All regions' : $filters.region
 
   function handleKeydown(e) {
     if (e.key === 'Escape') {
@@ -57,13 +64,36 @@
   </div>
 
   <!-- Region filter -->
-  <div class="cw-pill" on:click={() => showRegionMenu = !showRegionMenu}>
-    <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4" style="width:13px;height:13px">
-      <circle cx="6.5" cy="6.5" r="5.5"/>
-      <path d="M1 6.5h11M6.5 1a9 6 0 010 11M6.5 1a9 6 0 000 11"/>
-    </svg>
-    All regions
-    <span class="caret">▾</span>
+  <div class="tb-dropdown-wrap">
+    <div class="cw-pill" on:click={() => showRegionMenu = !showRegionMenu}>
+      <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4" style="width:13px;height:13px">
+        <circle cx="6.5" cy="6.5" r="5.5"/>
+        <path d="M1 6.5h11M6.5 1a9 6 0 010 11M6.5 1a9 6 0 000 11"/>
+      </svg>
+      {currentRegion}
+      <span class="caret">▾</span>
+    </div>
+
+    {#if showRegionMenu}
+      <div class="dropdown-menu" on:click|stopPropagation>
+        <div
+          class="dropdown-item"
+          class:active={$filters.region === 'all'}
+          on:click={() => setRegion('all')}
+        >
+          All regions
+        </div>
+        {#each $countries as country}
+          <div
+            class="dropdown-item"
+            class:active={$filters.region === country}
+            on:click={() => setRegion(country)}
+          >
+            {country}
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <!-- Time range filter -->

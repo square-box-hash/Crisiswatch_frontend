@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
   import { filteredOutbreaks, selectedOutbreak } from '../../stores/index.js'
-  import { TILE_URL, TILE_OPTIONS, MAP_CENTER, MAP_ZOOM, colors, getSeverity } from '../../styles/theme.js'
+  import { TILE_URL, TILE_OPTIONS, MAP_CENTER, MAP_ZOOM, SEVERITY_ORDER, getSeverity } from '../../styles/theme.js'
 
   let mapEl
   let map
@@ -131,9 +131,12 @@
 
   <!-- Legend -->
   <div class="legend">
-    <div class="leg-item"><span class="leg-dot" style="background:var(--green)"></span>Monitoring</div>
-    <div class="leg-item"><span class="leg-dot" style="background:var(--amber)"></span>Advisory</div>
-    <div class="leg-item"><span class="leg-dot" style="background:var(--red)"></span>Alert</div>
+    {#each SEVERITY_ORDER as level}
+      <div class="leg-item">
+        <span class="leg-dot" style="background:{getSeverity(level).color}"></span>
+        {getSeverity(level).label}
+      </div>
+    {/each}
   </div>
 </div>
 

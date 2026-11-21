@@ -109,11 +109,21 @@ npm install
 npm run dev
 ```
 
-Update `src/lib/constants.js` with your backend URL:
+Point it at your backend with an environment variable (create `.env.local`):
 
-```javascript
-export const API_BASE_URL = 'https://your-backend.onrender.com'
+```bash
+VITE_API_BASE_URL=https://crisiswatch-ohrl.onrender.com
 ```
+
+It falls back to the deployed URL in `src/lib/constants.js` if unset.
+
+### Data contract
+
+The dashboard renders whatever `GET /outbreaks` returns. Severity is
+`low | moderate | high | critical` end to end — the frontend does not translate
+it, so a critical outbreak is red in the feed, the map and the detail panel.
+Case counts come from `cases`, and the trend line is drawn from the real
+`snapshots` history (no history → "Not enough history yet").
 
 ---
 
