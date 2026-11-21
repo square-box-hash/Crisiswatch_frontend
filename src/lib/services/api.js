@@ -203,10 +203,14 @@ export async function fetchHealth() {
 
 export function normaliseOutbreak(raw) {
   const snapshots = Array.isArray(raw.snapshots) ? raw.snapshots : []
-  const series = snapshots.map(s => Number(s.cases) || 0)
+  const series = snapshots
+    .map(s => s.cases)
+    .filter(v => typeof v === 'number')
 
   const first = series.length ? series[0] : 0
-  const last = series.length ? series[series.length - 1] : Number(raw.cases) || 0
+  const last = series.length
+    ? series[series.length - 1]
+    : (typeof raw.cases === 'number' ? raw.cases : 0)
 
   let trendPct = 0
   if (first > 0) trendPct = Math.round(((last - first) / first) * 100)
@@ -225,9 +229,19 @@ export function normaliseOutbreak(raw) {
     lifecycle: raw.lifecycle_stage ?? '',
     claimType: raw.claim_type ?? '',
 
-    cases: Number(raw.cases ?? raw.estimated_cases ?? 0),
-    deaths: Number(raw.deaths ?? raw.estimated_deaths ?? 0),
-    peakCases: Number(raw.peak_cases ?? raw.cases ?? 0),
+    // null means "no source stated a figure" — keep it null so the UI can say
+    // "not reported" instead of printing a misleading 0.
+    cases: raw.cases ?? raw.estimated_cases ?? null,
+    deaths: raw.deaths ?? raw.estimated_deaths ?? null,
+    casesUnknown: Boolean(raw.cases_unknown ?? (raw.cases ?? raw.estimated_cases) == null),
+    casesSource: raw.cases_source ?? null,
+    peakCases: raw.peak_cases ?? null,
+
+    status: String(raw.status ?? 'signal').toLowerCase(),
+    sourcesAgreeing: Number(raw.sources_agreeing ?? 0),
+    evidence: Array.isArray(raw.evidence) ? raw.evidence : [],
+    contradictions: Array.isArray(raw.contradictions) ? raw.contradictions : [],
+    agreement: raw.agreement ?? null,
 
     trendPct: Math.abs(trendPct),
     trendDir: trendPct >= 0 ? 'up' : 'down',

@@ -1,6 +1,6 @@
 <script>
   import { filteredOutbreaks, selectedOutbreak, feedStatus } from '../../stores/index.js'
-  import { severityBand } from '../../styles/theme.js'
+  import { severityBand, getStatus } from '../../styles/theme.js'
 
   function selectOutbreak(o) {
     selectedOutbreak.set(o)
@@ -23,12 +23,18 @@
     } catch { return '' }
   }
 
-  // Format cases nicely: 7200000 → 7.2M, 5940 → 5.9K
+  // 7200000 → 7.2M, 5940 → 5.9K. null/undefined → unknown, never "0".
   function formatCases(n) {
-    if (!n) return '0'
+    if (n === null || n === undefined) return null
+    if (n === 0) return '0'
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M'
     if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K'
     return String(n)
+  }
+
+  function casesLabel(o) {
+    const n = formatCases(o.cases)
+    return n === null ? 'cases not reported' : `${n} cases`
   }
 </script>
 
@@ -80,6 +86,11 @@
               <span class="status-dot"></span>
               {o.severity ?? 'unknown'}
             </span>
+            <span
+              class="status-tag"
+              title={getStatus(o.status).hint}
+              style="color:{getStatus(o.status).color};border-color:{getStatus(o.status).color}55"
+            >{getStatus(o.status).label}</span>
             <span class="card-arrow">›</span>
           </div>
 
@@ -91,7 +102,7 @@
 
           <!-- Stats -->
           <div class="card-stats">
-            <span class="card-count">{formatCases(o.cases)} cases</span>
+            <span class="card-count" class:unknown={o.cases === null}>{casesLabel(o)}</span>
             {#if o.deaths > 0}
               <span class="card-count" style="opacity:.55">{formatCases(o.deaths)} deaths</span>
             {/if}
@@ -123,6 +134,24 @@
 </aside>
 
 <style>
+  .status-tag {
+    font-size: 9px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-left: auto;
+    margin-right: 6px;
+    opacity: .9;
+    white-space: nowrap;
+  }
+  .card-count.unknown {
+    font-style: italic;
+    opacity: .6;
+    font-size: 11px;
+  }
+
   .feed-panel {
     width: 320px;
     min-width: 320px;

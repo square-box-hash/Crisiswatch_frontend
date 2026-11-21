@@ -57,6 +57,19 @@ export const severity = {
   },
 }
 
+// How well corroborated a record is. Distinct from severity: severity says how
+// bad, status says how sure.
+export const STATUS_STYLES = {
+  confirmed: { label: 'Confirmed',    color: colors.teal,  hint: 'two or more independent sources, at least one official' },
+  probable:  { label: 'Probable',     color: colors.amber, hint: 'one official source with a stated count' },
+  suspected: { label: 'Suspected',    color: colors.t2,    hint: 'sources agree it exists, no official figures' },
+  signal:    { label: 'Signal only',  color: colors.t3,    hint: 'one advisory or listing mention, no data' },
+}
+
+export function getStatus(key = '') {
+  return STATUS_STYLES[String(key).toLowerCase()] ?? STATUS_STYLES.signal
+}
+
 // Ordered worst-first, for legends and sorting.
 export const SEVERITY_ORDER = ['critical', 'high', 'moderate', 'low']
 

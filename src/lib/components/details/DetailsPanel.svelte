@@ -1,7 +1,7 @@
 <script>
   import { selectedOutbreak } from '../../stores/index.js'
   import { fetchOutbreak } from '../../services/api.js'
-  import { severityBand } from '../../styles/theme.js'
+  import { severityBand, getStatus } from '../../styles/theme.js'
 
   let activeTab = 'ai'
   let summaryData = null
@@ -93,6 +93,11 @@
     <!-- Header -->
     <div class="dp-head">
       <span class={pillClass(o.severity)}>{o.severity}</span>
+      <span
+        class="status-pill"
+        title={getStatus(o.status).hint}
+        style="color:{getStatus(o.status).color};border-color:{getStatus(o.status).color}55"
+      >{getStatus(o.status).label}</span>
       <button class="close-x" on:click={close}>×</button>
     </div>
 
@@ -199,6 +204,38 @@
       {/if}
     </div>
 
+      <!-- ── Evidence ledger ── -->
+      {#if o.evidence?.length}
+        <div class="sec-box">
+          <div class="cw-section-label">
+            Sources ({o.evidence.length} · {o.sourcesAgreeing} independent)
+          </div>
+
+          {#if o.contradictions?.length}
+            <div class="contradictions">
+              {#each o.contradictions as c}
+                <div class="contra-line">⚠ {c}</div>
+              {/each}
+            </div>
+          {/if}
+
+          <ul class="evidence-list">
+            {#each o.evidence as e}
+              <li>
+                <a href={e.url} target="_blank" rel="noopener noreferrer">
+                  {e.source_name}
+                </a>
+                <span class="ev-figures">
+                  {e.cases === null || e.cases === undefined
+                    ? 'no figure stated'
+                    : `${e.cases.toLocaleString()} cases`}
+                </span>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+
       <!-- ── Precautions ── -->
       {#if o.precautions?.length}
         <div class="sec-box">
@@ -271,6 +308,49 @@
 {/if}
 
 <style>
+  .status-pill {
+    font-size: 9px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-left: 8px;
+  }
+  .evidence-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .evidence-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11.5px;
+    border-bottom: 1px solid var(--b0);
+    padding-bottom: 6px;
+  }
+  .evidence-list a {
+    color: var(--teal);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .evidence-list a:hover { text-decoration: underline; }
+  .ev-figures { color: var(--t2); white-space: nowrap; font-size: 11px; }
+  .contradictions {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--amber);
+    background: rgba(192,122,16,0.08);
+    border-radius: 4px;
+  }
+  .contra-line { font-size: 11.5px; color: var(--t2); line-height: 1.5; }
+
   .detail-panel {
     width: 400px;
     min-width: 400px;
